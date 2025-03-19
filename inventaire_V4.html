@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventaire - Demande de prêt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+	#loadingSpinner {
+    	width: 50px;
+    	height: 50px;
+    border: 5px solid #f3f3f3; /* Couleur de fond */
+    border-top: 5px solid #3498db; /* Couleur du cercle qui tourne */
+    border-radius: 50%; /* Donne la forme ronde */
+    animation: spin 1s linear infinite; /* Animation de rotation infinie */
+    margin: auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+	}	
+
+	@keyframes spin {
+    		0% { transform: rotate(0deg); }
+    		100% { transform: rotate(360deg); }
+	}
+        .form-section {
+            margin-bottom: 20px;
+        }
+        .form-section input, .form-section select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+        }
+        .form-section .date-group, .form-section .name-email-group {
+            display: flex;
+            justify-content: space-between;
+        }
+        .form-section .date-group input, .form-section {
+            width: 90%;
+        }
+	.name-email-group input {
+            width: 100%;
+		margin: 10px 0;
+        }
+	.name-email-group div {
+            width: 100%;
+        }
+	.name-email-group  {
+            display:flex;
+		justify-content: space-between;
+		gap:50px;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .item img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .fullscreen-overlay img {
+            position: fixed;
+            top: 0;
+            left: 0;
+            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: zoom-out;
+            overflow: hidden;
+        }
+        .filters select {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .request-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+        }
+        .request-button:hover {
+            background-color: #218838;
+        }
+        .item img.full-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: auto;
+            height: auto;
+            max-width: 80%;
+            max-height: 80%;
+            object-fit: contain;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            z-index: 9999;
+            cursor: zoom-out;
+        }
+        .item img:hover {
+            transform: scale(1.1);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Inventaire - Demande de prêt</h2>
+
+        <!-- Formulaire de demande -->
+        <div class="form-section">
+            <div class="name-email-group">
+                <div>
+                    <label for="demandeur">Nom et prénom du demandeur :</label>
+                    <input type="text" id="demandeur" placeholder="Nom et prénom" />
+                </div>
+                <div>
+                    <label for="contact">Adresse email :</label>
+                    <input type="email" id="contact" placeholder="Adresse email" />
+                </div>
+            </div>
+
+            <label for="structure">Nom de votre structure :</label>
+            <input type="text" id="structure" placeholder="Nom de la structure" />
+
+            <label for="evenement">Nom de votre événement :</label>
+            <input type="text" id="evenement" placeholder="Nom de l'événement" />
+
+            <!-- Champs de date alignés -->
+            <div class="date-group">
+                <div>
+                    <label for="dateDebut">Date de début du prêt :</label>
+                    <input type="date" id="dateDebut" />
+                </div>
+                <div>
+                    <label for="dateFin">Date de fin du prêt :</label>
+                    <input type="date" id="dateFin" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters">
+            <label for="categoryFilter">Catégorie :</label>
+            <select id="categoryFilter">
+                <option value="">Toutes</option>
+            </select>
+
+            <label for="siteFilter">Site de stockage :</label>
+            <select id="siteFilter">
+                <option value="">Tous</option>
+            </select>
+        </div>
+
+        <!-- Liste du matériel -->
+        <div id="inventoryList"></div>
+
+        <!-- Bouton Envoyer la demande -->
+        <button class="request-button" onclick="submitRequest()">Envoyer la demande</button>
+
+		<!-- Indicateur de chargement -->
+		<div id="loadingSpinner" style="display: none; text-align: center; font-size: 40px;">&#8987;</div>
+    </div>
+    
+    <script>
+        const selectedItems = []; // Stocke les sélections en mémoire
+        const apiUrl = "https://script.google.com/macros/s/AKfycbz2o9vu7Q3UVuvRWxhLb2AhhtUiDWT7xmPoM5sL0Dzpi9hc6Rox4NMVjx8Hc1sX3jM7/exec";
+
+        async function fetchInventory() {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            return data;
+        }
+
+        function getDriveImageUrl(driveLink) {
+            let fileId = "";
+
+            // Cas 1 : Lien du type "open?id=..."
+            const openIdMatch = driveLink.match(/id=([a-zA-Z0-9_-]+)/);
+            if (openIdMatch) fileId = openIdMatch[1];
+
+            // Cas 2 : Lien du type "/file/d/..."
+            const fileIdMatch = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+            if (fileIdMatch) fileId = fileIdMatch[1];
+
+            // Forcer une version réduite (taille max 1000x1000 px)
+            return fileId 
+                ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000-h1000` 
+                : "https://via.placeholder.com/50?text=Image+non+dispo";
+        }
+
+        // Fonction pour afficher l'image en plein écran
+        function toggleFullScreen(imgElement) {
+            // Si une lightbox existe déjà, on la ferme
+            const existingOverlay = document.querySelector(".fullscreen-overlay");
+            if (existingOverlay) {
+                existingOverlay.remove();
+                return;
+            }
+
+            // Création de l'overlay avec l'image agrandie
+            const overlay = document.createElement("div");
+            overlay.classList.add("fullscreen-overlay");
+            overlay.innerHTML = `<img src="${imgElement.src}" alt="Image en grand">`;
+
+            // Ajoute l'overlay au body
+            document.body.appendChild(overlay);
+
+            // Ferme la lightbox au clic sur l'image ou l'arrière-plan
+            overlay.addEventListener("click", () => overlay.remove());
+        }
+
+        function displayInventory(items) {
+            const listContainer = document.getElementById("inventoryList");
+            listContainer.innerHTML = ""; // Nettoyer la liste avant d'afficher les résultats
+            items.sort((a, b) => a["Nom de l'article"].localeCompare(b["Nom de l'article"]));
+
+            items.forEach(item => {
+                const itemRef = item["Ref"]; //identifiant unique de chaque objet
+                const maxQuantity = parseInt(item["Quantité stockée"]);
+		    const selectedQty = selectedItems[itemRef]?.quantity || 0; // Garde la sélection
+                const div = document.createElement("div");
+                div.className = "item";
+                div.innerHTML = `
+                    <div>
+                        <strong>${item["Nom de l'article"]}</strong><br>
+                        Site : ${item["Site de stockage"]}, 
+                        Quantité disponible : ${maxQuantity}
+                    </div>
+                    <select class="quantity-select" data-ref="${itemRef}" data-name="${item["Nom de l'article"]}" data-max="${maxQuantity}">
+                        ${[...Array(maxQuantity + 1).keys()].map(n => 
+                            `<option value="${n}" ${n === selectedQty ? "selected" : ""}>${n}</option>`
+                        ).join('')}
+                    </select>
+                    <img src="${getDriveImageUrl(item["Photo"])}" alt="${item["Nom de l'article"]}" onclick="toggleFullScreen(this)">
+                `;
+
+                listContainer.appendChild(div);
+
+                // Mémorise la sélection quand l'utilisateur change une quantité
+                div.querySelector(".quantity-select").addEventListener("change", (e) => {
+                    const selectedQty = parseInt(e.target.value);
+                    if (selectedQty > 0) {
+                        selectedItems[itemRef] = { name: item["Nom de l'article"], quantity: selectedQty };
+                    } else {
+                        delete selectedItems[itemRef]; // Supprime l'entrée si la quantité est 0
+                    }
+                });
+            });
+        }
+
+        function populateFilters(items) {
+            const categories = [...new Set(items.map(item => item["Catégorie"]))];
+            const sites = [...new Set(items.map(item => item["Site de stockage"]))];
+
+            const categoryFilter = document.getElementById("categoryFilter");
+            const siteFilter = document.getElementById("siteFilter");
+
+            categories.forEach(cat => {
+                const option = document.createElement("option");
+                option.value = cat;
+                option.textContent = cat;
+                categoryFilter.appendChild(option);
+            });
+
+            sites.forEach(site => {
+                const option = document.createElement("option");
+                option.value = site;
+                option.textContent = site;
+                siteFilter.appendChild(option);
+            });
+
+            categoryFilter.addEventListener("change", () => filterItems(items));
+            siteFilter.addEventListener("change", () => filterItems(items));
+        }
+
+        function filterItems(items) {
+            const categoryFilter = document.getElementById("categoryFilter").value;
+            const siteFilter = document.getElementById("siteFilter").value;
+
+            let filteredItems = items;
+
+            if (categoryFilter) {
+                filteredItems = filteredItems.filter(item => item["Catégorie"] === categoryFilter);
+            }
+
+            if (siteFilter) {
+                filteredItems = filteredItems.filter(item => item["Site de stockage"] === siteFilter);
+            }
+
+            displayInventory(filteredItems);
+        }
+
+        async function submitRequest() {
+            const demandeur = cleanInput(document.getElementById("demandeur").value);
+            const email = cleanInput(document.getElementById("contact").value);
+            const structure = cleanInput(document.getElementById("structure").value);
+            const evenement = cleanInput(document.getElementById("evenement").value);
+            const dateDebut = cleanInput(document.getElementById("dateDebut").value);
+            const dateFin = cleanInput(document.getElementById("dateFin").value);
+
+		if (!demandeur || !structure || !evenement || !dateDebut || !dateFin) {
+                alert("Veuillez remplir toutes les informations.");
+                return;
+            }
+
+		if (Object.keys(selectedItems).length === 0) {
+                alert("Veuillez sélectionner au moins un article.");
+                return;
+            }
+
+		const itemList = Object.values(selectedItems).map(item => `${item.name}; ${item.quantity}`).join(", ");
+
+		// Afficher le rond tournant
+    		document.getElementById("loadingSpinner").style.display = 'block';
+
+            const requestData = 
+                `demandeur: ${demandeur}\ncontact: ${email}\nstructure: ${structure}\nevenement: ${evenement}\ndateDebut: ${dateDebut}\ndateFin: ${dateFin}\nArticles: ${itemList}`;
+		
+		try {
+            const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: {"Content-Type": "text/plain"},
+                body: requestData
+            });
+
+            const result = await response.json();
+		
+            if (result.success) {
+                alert("Demande envoyée avec succès!");
+                selectedItems.length = 0;
+            } else {
+                alert("Erreur : " + result.error);
+            }
+        	}catch(error){
+			alert("Problème de connexion au serveur.");
+		}finally{
+			document.getElementById("loadingSpinner").style.display = 'none'; // Cacher le loader
+		}
+	}
+		
+	  function cleanInput(input) {
+            return input.replace(/[;,:'"<>|\\\/\n\r\t]/g, " ").trim();
+        }
+
+        fetchInventory().then(items => {
+            populateFilters(items);
+            displayInventory(items);
+        });
+    </script>
+</body>
+</html>
