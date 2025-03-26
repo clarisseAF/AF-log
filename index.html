@@ -75,12 +75,24 @@
 			margin-bottom: 10px;
 		}
 
+		.search-bar {
+    			margin-bottom: 10px;
+		}
+
+		.search-bar input {
+    			width: 30%;
+    			padding: 3px;
+			margin-bottom: 10px;
+			font-style: italic;
+			border: 1px solid #ccc;
+		}
+
 		.request-button {
             	display: block;
             	width: 100%;
             	padding: 10px;
             	margin-top: 20px;
-		margin-bottom: 20px;
+			margin-bottom: 20px;
             	background-color: #28a745;
             	color: white;
             	border: none;
@@ -172,6 +184,11 @@
             	</select>
         	</div>
 
+		<!-- Barre de recherche -->
+		<div class="search-bar">
+    			<input type="text" id="searchInput" placeholder="Rechercher un nom d'objet" onkeyup="searchItems()" />
+		</div>
+
         	<!-- Liste du matériel -->
         	<div id="inventoryList"></div>
 
@@ -181,10 +198,12 @@
 	<script>
 		const selectedItems = []; // Stocke les sélections en mémoire
 		const apiUrl = "https://script.google.com/macros/s/AKfycbxcmsnL8h1UO_WgRvQTzH6IkBNl1a-z-wnL5jpQsJm6rvSyaNBuWXM8D7C4T4HNDqfg/exec";
+		let allItems = [];
 
 		async function fetchInventory() {
             	const response = await fetch(apiUrl);
             	const data = await response.json();
+			allItems = data; // Stocke tous les éléments dans allItems
             	return data;
         	}
 
@@ -201,8 +220,8 @@
 
             	// Forcer une version réduite (taille max 1000x1000 px)
             	return fileId 
-                	? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000-h1000` 
-                	: "https://via.placeholder.com/50?text=Image+non+dispo";
+                		? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000-h1000` 
+                		: "https://via.placeholder.com/50?text=Image+non+dispo";
         	}
 
         	// Fonction pour afficher l'image en plein écran
@@ -210,8 +229,8 @@
             	// Si une lightbox existe déjà, on la ferme
             	const existingOverlay = document.querySelector(".fullscreen-overlay");
             	if (existingOverlay) {
-                	existingOverlay.remove();
-                	return;
+                		existingOverlay.remove();
+                		return;
             	}
 
             	// Création de l'overlay avec l'image agrandie
@@ -225,6 +244,12 @@
             	// Ferme la lightbox au clic sur l'image ou l'arrière-plan
             	overlay.addEventListener("click", () => overlay.remove());
         	}
+
+		function searchItems() {
+    			const searchInput = document.getElementById("searchInput").value.toLowerCase();
+    			const filteredItems = allItems.filter(item => item["Nom de l'article"].toLowerCase().includes(searchInput));
+    			displayInventory(filteredItems);
+		}
 
 		function displayInventory(items) {
             	const listContainer = document.getElementById("inventoryList");
