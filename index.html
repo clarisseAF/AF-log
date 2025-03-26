@@ -80,6 +80,7 @@
             	width: 100%;
             	padding: 10px;
             	margin-top: 20px;
+			margin-bottom: 20px;
             	background-color: #28a745;
             	color: white;
             	border: none;
@@ -154,6 +155,8 @@
 				<label for="commentaire">Commentaire (optionnel) :</label>
 				<textarea id="commentaire"	rows="3" style="width: 100%; resize: none;"></textarea>
 			</div>
+			<!-- Bouton Haut Envoyer la demande -->
+        		<button id="submitButton1" class="request-button" onclick="submitRequest()">Envoyer la demande</button>	
 		</div>
 
         	<!-- Filtres -->
@@ -172,9 +175,8 @@
         	<!-- Liste du matériel -->
         	<div id="inventoryList"></div>
 
-        	<!-- Bouton Envoyer la demande -->
-        	<button class="request-button" onclick="submitRequest()">Envoyer la demande</button>
-	</div>
+        	<!-- Bouton Bas Envoyer la demande -->
+        	<button id="submitButton2" class="request-button" onclick="submitRequest()">Envoyer la demande</button>
     
 	<script>
 		const selectedItems = []; // Stocke les sélections en mémoire
@@ -304,6 +306,13 @@
 		}
 
 		async function submitRequest() {
+			const submitButton1 = document.getElementById("submitButton1");
+			submitButton1.disabled = true;
+			submitButton1.textContent = "Envoi en cours...";
+			const submitButton2 = document.getElementById("submitButton2");
+			submitButton2.disabled = true;
+			submitButton2.textContent = "Envoi en cours...";
+
 			const demandeur = cleanInput(document.getElementById("demandeur").value);
 			const email = cleanInput(document.getElementById("contact").value);
 			const structure = cleanInput(document.getElementById("structure").value);
@@ -313,11 +322,13 @@
 			const commentaire = cleanInput(document.getElementById("commentaire").value);
 
 			if (!demandeur || !structure || !evenement || !dateDebut || !dateFin) {
+				resetButton();
 				alert("Veuillez remplir toutes les informations.");
 				return;
 			}
 
 			if (Object.keys(selectedItems).length === 0) {
+				resetButton();
 				alert("Veuillez sélectionner au moins un article.");
 				return;
 			}
@@ -336,21 +347,29 @@
 				const result = await response.json();
 		
 				if (result.success) {
-                			alert("Demande envoyée avec succès!");
-                			selectedItems.length = 0;
+					resetButton();
+                		alert("Demande envoyée avec succès!");
+                		selectedItems.length = 0;
             		} else {
-                			alert("Erreur : " + result.error);
+					resetButton();
+                		alert("Erreur : " + result.error);
             		}
         		}catch(error){
 				alert("Problème de connexion au serveur.");
-			}finally{
-				document.getElementById("loadingSpinner").style.display = 'none'; // Cacher le loader
+				resetButton();
 			}
 		}
 		
 		function cleanInput(input) {
 			return input.replace(/[;,:'"<>|\\\/\n\r\t]/g, " ").trim();
 		}
+		
+		function resetButton() {
+        		submitButton1.disabled = false;
+        		submitButton1.textContent = "Envoyer la demande";
+			submitButton2.disabled = false;
+        		submitButton2.textContent = "Envoyer la demande"
+    		}
 
 		fetchInventory().then(items => {
 			populateFilters(items);
@@ -359,4 +378,3 @@
     </script>
 </body>
 </html>
-
