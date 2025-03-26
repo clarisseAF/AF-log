@@ -80,7 +80,7 @@
             	width: 100%;
             	padding: 10px;
             	margin-top: 20px;
-			margin-bottom: 20px;
+		margin-bottom: 20px;
             	background-color: #28a745;
             	color: white;
             	border: none;
@@ -201,8 +201,8 @@
 
             	// Forcer une version réduite (taille max 1000x1000 px)
             	return fileId 
-                		? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000-h1000` 
-                		: "https://via.placeholder.com/50?text=Image+non+dispo";
+                	? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000-h1000` 
+                	: "https://via.placeholder.com/50?text=Image+non+dispo";
         	}
 
         	// Fonction pour afficher l'image en plein écran
@@ -210,8 +210,8 @@
             	// Si une lightbox existe déjà, on la ferme
             	const existingOverlay = document.querySelector(".fullscreen-overlay");
             	if (existingOverlay) {
-                		existingOverlay.remove();
-                		return;
+                	existingOverlay.remove();
+                	return;
             	}
 
             	// Création de l'overlay avec l'image agrandie
