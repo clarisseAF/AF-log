@@ -204,6 +204,7 @@
             	const response = await fetch(apiUrl);
             	const data = await response.json();
 			allItems = data; // Stocke tous les éléments dans allItems
+			displayInventory(data);
             	return data;
         	}
 
